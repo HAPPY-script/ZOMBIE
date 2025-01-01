@@ -1,0 +1,85 @@
+game.StarterGui:SetCore("SendNotification", {
+    Title = "Zombie";
+    Text = "Đang trên đường tới...";
+    Duration = 5;
+})
+game.StarterGui:SetCore("SendNotification", {
+    Title = "Zombie";
+    Text = "On the way...";
+    Duration = 5;
+})
+
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+-- Tùy chỉnh tọa độ
+local teleportPosition = Vector3.new(-6508.56, 83.24, -132.84) -- Tọa độ teleport
+local lungeTargetPosition = Vector3.new(-5562.93, 208.15, -793.08) -- Tọa độ lướt
+
+-- Tốc độ lướt
+local lungeSpeed = 300 -- Tốc độ lướt (cao = nhanh)
+
+-- Hàm tính khoảng cách
+local function calculateDistance(pos1, pos2)
+    return (pos1 - pos2).Magnitude
+end
+
+-- Teleport đến vị trí
+local function teleportToPosition(position)
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    humanoidRootPart.CFrame = CFrame.new(position)
+end
+
+-- Lướt đến vị trí
+local function performLunge(targetPosition)
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    local startPosition = humanoidRootPart.Position
+    local direction = (targetPosition - startPosition).Unit -- Hướng lướt
+    local distance = (targetPosition - startPosition).Magnitude -- Khoảng cách đến mục tiêu
+    local startTime = tick()
+
+    -- Lướt cho đến khi đạt đến tọa độ mục tiêu
+    while (tick() - startTime < distance / lungeSpeed) do
+        humanoidRootPart.CFrame = humanoidRootPart.CFrame + direction * (lungeSpeed * RunService.Heartbeat:Wait())
+    end
+end
+
+-- Teleport liên tục trong 2 giây
+local function teleportRepeatedly(position, duration)
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    local startTime = tick()
+
+    while (tick() - startTime < duration) do
+        humanoidRootPart.CFrame = CFrame.new(position)
+        RunService.Heartbeat:Wait()
+    end
+end
+
+-- Logic chính
+local function executeMovement()
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    local currentPosition = humanoidRootPart.Position
+
+    -- Tính khoảng cách
+    local distanceToLunge = calculateDistance(currentPosition, lungeTargetPosition)
+    local teleportToLungeDistance = calculateDistance(teleportPosition, lungeTargetPosition)
+
+    if distanceToLunge < teleportToLungeDistance then
+        -- Nếu gần tọa độ lướt hơn, chỉ lướt
+        performLunge(lungeTargetPosition)
+    else
+        -- Nếu gần tọa độ teleport hơn
+        teleportRepeatedly(teleportPosition, 2) -- Teleport liên tục trong 2 giây
+        teleportToPosition(teleportPosition + Vector3.new(0, 100, 0)) -- Teleport lên cao 100m
+        task.wait(0.1) -- Chờ một chút
+        performLunge(lungeTargetPosition) -- Sau đó lướt
+    end
+end
+
+-- Chạy script
+executeMovement()
